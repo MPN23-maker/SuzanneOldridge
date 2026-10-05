@@ -1210,10 +1210,14 @@
     return params.get('member') || 'Preview Member';
   }
   const memberName = "Suzanne Oldridge";
+  // Shown on screen only. Every fetch, token check, and sheet lookup still
+  // uses memberName above, so her goals, checklist, and dashboard link keep
+  // working exactly as before -- only what's displayed here changes.
+  const DISPLAY_NAME = "Suzanne Haney Oldridge";
 
   // Personalize the header immediately (doesn't need to wait on data)
   (function setHeroName() {
-    const parts = memberName.trim().split(' ');
+    const parts = DISPLAY_NAME.trim().split(' ');
     const first = parts.shift();
     const rest = parts.join(' ');
     const heroEl = document.getElementById('heroTitle');
