@@ -1236,7 +1236,11 @@
   // own numbers come from the live Apps Script feed (Chris's weekly
   // 15-Min Check-In entries) once those start coming in.
   // ============================================================
-  const MEMBER_HISTORY = {};
+  const MEMBER_HISTORY = {
+ "Suzanne Oldridge": {
+  "startDate": "2026-09-05"
+ }
+};
 
   // ============================================================
   // CREDIBILITY-PHASE MANUAL ENTRIES
@@ -1265,7 +1269,220 @@
   // live Google Sheet feed onto the end of this list automatically -- so
   // going forward, new weekly data comes from the Sheet, not manual re-entry.
   // ============================================================
-  const LEGACY_HISTORY = {};
+  const LEGACY_HISTORY = {
+ "Suzanne Oldridge": [
+  {
+   "weekEnding": "2026-09-11",
+   "touchpoints": {
+    "meetup": {
+     "scheduled": true,
+     "attended": true
+    },
+    "checkin": {
+     "scheduled": true,
+     "attended": true
+    },
+    "friday": {
+     "scheduled": true,
+     "attended": true
+    }
+   },
+   "dailyCounts": [
+    0,
+    0,
+    6,
+    6,
+    4,
+    6,
+    6
+   ],
+   "dailyMoods": [
+    "GOOD",
+    "OKAY",
+    "OKAY",
+    "GOOD",
+    "GOOD",
+    "GREAT",
+    "GOOD"
+   ]
+  },
+  {
+   "weekEnding": "2026-09-18",
+   "touchpoints": {
+    "meetup": {
+     "scheduled": true,
+     "attended": true
+    },
+    "checkin": {
+     "scheduled": true,
+     "attended": true
+    },
+    "friday": {
+     "scheduled": true,
+     "attended": true
+    }
+   },
+   "dailyCounts": [
+    6,
+    0,
+    6,
+    6,
+    6,
+    0,
+    6
+   ],
+   "dailyMoods": [
+    "GOOD",
+    "GOOD",
+    "GOOD",
+    "GOOD",
+    "GREAT",
+    "GOOD",
+    "GOOD"
+   ]
+  },
+  {
+   "weekEnding": "2026-09-25",
+   "touchpoints": {
+    "meetup": {
+     "scheduled": true,
+     "attended": true
+    },
+    "checkin": {
+     "scheduled": true,
+     "attended": true
+    },
+    "friday": {
+     "scheduled": true,
+     "attended": true
+    }
+   },
+   "dailyCounts": [
+    6,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5
+   ],
+   "dailyMoods": [
+    "GOOD",
+    "GREAT",
+    "GOOD",
+    "GOOD",
+    "GREAT",
+    "GREAT",
+    "GREAT"
+   ]
+  },
+  {
+   "weekEnding": "2026-10-02",
+   "touchpoints": {
+    "meetup": {
+     "scheduled": true,
+     "attended": true
+    },
+    "checkin": {
+     "scheduled": true,
+     "attended": true
+    },
+    "friday": {
+     "scheduled": true,
+     "attended": true
+    }
+   },
+   "dailyCounts": [
+    0,
+    5,
+    5,
+    5,
+    5,
+    5,
+    0
+   ],
+   "dailyMoods": [
+    "GREAT",
+    "GREAT",
+    "GREAT",
+    "GREAT",
+    "GREAT",
+    "GREAT",
+    "GREAT"
+   ]
+  },
+  {
+   "weekEnding": "2026-10-09",
+   "touchpoints": {
+    "meetup": {
+     "scheduled": true,
+     "attended": true
+    },
+    "checkin": {
+     "scheduled": true,
+     "attended": true
+    },
+    "friday": {
+     "scheduled": true,
+     "attended": true
+    }
+   },
+   "dailyCounts": [
+    5,
+    0,
+    5,
+    5,
+    6,
+    4,
+    6
+   ],
+   "dailyMoods": [
+    "GOOD",
+    "OKAY",
+    "BEEN BETTER",
+    "BEEN BETTER",
+    "OKAY",
+    "GOOD",
+    "GOOD"
+   ]
+  },
+  {
+   "weekEnding": "2026-10-16",
+   "touchpoints": {
+    "meetup": {
+     "scheduled": true,
+     "attended": true
+    },
+    "checkin": {
+     "scheduled": true,
+     "attended": true
+    },
+    "friday": {
+     "scheduled": true,
+     "attended": true
+    }
+   },
+   "dailyCounts": [
+    4,
+    5,
+    6,
+    5,
+    6,
+    5,
+    4
+   ],
+   "dailyMoods": [
+    "GOOD",
+    "GREAT",
+    "GOOD",
+    "GREAT",
+    "GREAT",
+    "GOOD",
+    "GOOD"
+   ]
+  }
+ ]
+};
 
   // Turns the entered weekly rows above into the same shape the live feed
   // would return: weeklyData / currentStreakDays / daysElapsed / etc.
@@ -1357,9 +1574,11 @@
             {
               const rows = await fetchWeeklyRows(name);
               if (Array.isArray(rows) && rows.length) {
-                const lastKnown = new Date(overrides[overrides.length - 1].weekEnding);
-                const newRows = rows.filter(r => new Date(r.weekEnding) > lastKnown);
-                combined = overrides.concat(newRows);
+                // Hand-entered weeks win. Feed weeks they do not cover stay, sorted by date.
+                const covered = new Set(overrides.map(o => String(o.weekEnding).slice(0, 10)));
+                const newRows = rows.filter(r => !covered.has(String(r.weekEnding).slice(0, 10)));
+                combined = overrides.concat(newRows)
+                  .sort((a, b) => String(a.weekEnding).localeCompare(String(b.weekEnding)));
               }
             }
           } catch (err) {
@@ -1388,9 +1607,11 @@
             {
               const rows = await fetchWeeklyRows(name);
               if (Array.isArray(rows) && rows.length) {
-                const lastKnown = new Date(LEGACY_HISTORY[name][LEGACY_HISTORY[name].length - 1].weekEnding);
-                const newRows = rows.filter(r => new Date(r.weekEnding) > lastKnown);
-                combined = LEGACY_HISTORY[name].concat(newRows);
+                // Hand-entered weeks win. Feed weeks they do not cover stay, sorted by date.
+                const covered = new Set(LEGACY_HISTORY[name].map(o => String(o.weekEnding).slice(0, 10)));
+                const newRows = rows.filter(r => !covered.has(String(r.weekEnding).slice(0, 10)));
+                combined = LEGACY_HISTORY[name].concat(newRows)
+                  .sort((a, b) => String(a.weekEnding).localeCompare(String(b.weekEnding)));
               }
             }
           } catch (err) {
