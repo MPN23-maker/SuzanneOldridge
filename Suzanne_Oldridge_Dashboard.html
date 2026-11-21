@@ -586,7 +586,7 @@
             </div>
             <div class="phase-tagline">Build the habit.</div>
           </div>
-          <div class="phase-status" id="statusFOUNDATION">In Progress<span id="foundationWeekLabel">Week 11 / 52</span></div>
+          <div class="phase-status" id="statusFOUNDATION">In Progress<span id="foundationWeekLabel">Week 11 / 13</span></div>
         </div>
 
         <div class="phase-metrics">
@@ -2045,7 +2045,7 @@
     // missed or late check-in never silently drifts the phase/month forward.
     const weekNum = Math.max(1, weeklyData.length);
     const weekLabelEl = document.getElementById('foundationWeekLabel');
-    if (weekLabelEl) weekLabelEl.textContent = 'Week ' + Math.min(weekNum, 13) + ' / 52';
+    if (weekLabelEl) weekLabelEl.textContent = 'Week ' + Math.min(weekNum, 13) + ' / 13';
 
     const PHASES = ['FOUNDATION', 'CREDIBILITY', 'MOMENTUM', 'GROWTH'];
     const PHASE_UNLOCK_DAY = { FOUNDATION: 1, CREDIBILITY: 91, MOMENTUM: 181, GROWTH: 271 };
@@ -2074,7 +2074,7 @@
       } else if (i === currentPhaseIndex) {
         cardEl.classList.add('active');
         if (phase === 'FOUNDATION') {
-          if (statusEl) statusEl.innerHTML = 'In Progress<span id="foundationWeekLabel">Week ' + Math.min(weekNum, 13) + ' / 52</span>';
+          if (statusEl) statusEl.innerHTML = 'In Progress<span id="foundationWeekLabel">Week ' + Math.min(weekNum, 13) + ' / 13</span>';
         } else {
           const weekInPhase = weekNum - (i * 13);
           if (statusEl) statusEl.innerHTML = 'In Progress<span>Week ' + weekInPhase + ' / 13</span>';
@@ -2159,6 +2159,8 @@
     // Sample goals appear only when a preview link asks for them: ?preview=sample
     const PREVIEW_SAMPLE = /[?&]preview=sample\b/.test(window.location.search);
 
+    // This member's current Daily Disciplines, from their checklist.
+    const DAILY_DISCIPLINES = ["Speak affirmations out loud for 5 minutes", "Record one win from yesterday", "One intentional act of kindness today", "Listen to three songs that lift your spirits", "Walk, Run, Bike, or Swim (20 min)", "Host a webinar or workshop"];
     const AREAS = ['Personal', 'Professional', 'Mental Health', 'Physical Health', 'Wealth', 'Spiritual'];
     const PHASES = ['Foundation', 'Credibility', 'Momentum', 'Growth'];
     const GLYPH = { reached: '\u2713', recovered: '\u21BB', missed: '\u2715', current: '\u25CF', future: '', unset: '\u00B7' };
@@ -2341,6 +2343,18 @@
     // discipline chosen for that month, then the month's weekly progress.
     // The current phase shows the months that have begun. A finished phase
     // shows all three, folded down to their titles.
+    function hasSelection(sel) {
+      return !!sel && AREAS.some(a => { const r = sel[a]; return Array.isArray(r) ? r.filter(Boolean).length > 0 : !!r; });
+    }
+    // The selection in force for program month m (1 to 12).
+    function carriedSelection(m) {
+      for (let k = m; k >= 1; k--) {
+        const sel = ((feed.disciplines || {})[PHASES[Math.floor((k - 1) / 3)]] || {})[(k - 1) % 3 + 1];
+        if (hasSelection(sel)) return sel;
+      }
+      return null;
+    }
+
     function renderSection(idx, pos, first, total) {
       const section = ensureSection(idx);
       section.innerHTML = '';
@@ -2355,6 +2369,12 @@
       if (!setAreas.length && isActive) {
         const card = el('div', 'goal-card');
         card.appendChild(el('div', 'goal-empty', 'Your goals appear here after your setup session.'));
+        if (DAILY_DISCIPLINES.length) {
+          card.appendChild(el('div', 'month-goals-label month-weeks-label', 'Daily Disciplines:'));
+          const dl = el('div', 'month-disc');
+          DAILY_DISCIPLINES.forEach(d => dl.appendChild(el('div', 'month-disc-text', d)));
+          card.appendChild(dl);
+        }
         list.appendChild(card);
         return section;
       }
@@ -2406,10 +2426,17 @@
         box.appendChild(top);
 
         const body = el('div', 'month-body');
+        // When this month's selection is missing from the feed, the current month
+        // shows the disciplines from the member's Daily Disciplines checklist.
+        // Disciplines carry over: a month with no new selection keeps the most
+        // recent earlier selection. With none at all, the current month shows
+        // the disciplines from the member's Daily Disciplines checklist.
+        const monthDiscs = carriedSelection(m);
+        const useDaily = !monthDiscs && m === pos.month && DAILY_DISCIPLINES.length > 0;
         if (!setAreas.length) body.appendChild(el('div', 'goal-empty', 'Your goals appear here after your setup session.'));
         else body.appendChild(el('div', 'month-goals-label', 'Goals:'));
         setAreas.forEach(area => {
-          const raw = (((feed.disciplines || {})[phaseName] || {})[mip] || {})[area];
+          const raw = (monthDiscs || {})[area];
           const discs = (Array.isArray(raw) ? raw : (raw ? [raw] : [])).filter(Boolean);
           const item = el('div', 'month-goal');
           const line = el('div', 'month-goal-line');
@@ -2417,6 +2444,7 @@
           line.appendChild(el('span', 'month-goal-text', goals[area]));
           item.appendChild(line);
           const row = el('div', 'month-disc');
+          if (!discs.length && useDaily) { body.appendChild(item); return; }
           if (discs.length) {
             discs.forEach(d => row.appendChild(el('div', 'month-disc-text', d)));
           } else {
@@ -2425,6 +2453,13 @@
           item.appendChild(row);
           body.appendChild(item);
         });
+
+        if (useDaily) {
+          body.appendChild(el('div', 'month-goals-label month-weeks-label', 'Daily Disciplines:'));
+          const dl = el('div', 'month-disc');
+          DAILY_DISCIPLINES.forEach(d => dl.appendChild(el('div', 'month-disc-text', d)));
+          body.appendChild(dl);
+        }
 
         if (weeks.length) {
           body.appendChild(el('div', 'month-goals-label month-weeks-label', 'Weekly Progress:'));
